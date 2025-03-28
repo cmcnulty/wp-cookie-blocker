@@ -3,11 +3,10 @@
  * Plugin Name: WP Cookie Blocker
  * Plugin URI: https://github.com.com/cmcnulty/wp-cookie-blocker
  * Description: Block unwanted cookies from third-party plugins using custom regex patterns
- * Version: 1.0.0
+ * Version: 1.0.2
  * Author: Charles McNulty
  * Author URI: https://yourwebsite.com
  * Text Domain: wp-cookie-blocker
- * Domain Path: /languages
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
@@ -22,7 +21,7 @@ class WP_Cookie_Blocker {
     /**
      * Plugin version
      */
-    const VERSION = '1.0.0';
+    const VERSION = '1.0.2';
 
     /**
      * Option name for storing settings
@@ -54,8 +53,8 @@ class WP_Cookie_Blocker {
         // Register activation hook
         register_activation_hook(__FILE__, [$this, 'activate']);
 
-        // Frontend: Enqueue scripts
-        add_action('wp_enqueue_scripts', [$this, 'enqueue_scripts']);
+        // Frontend: Early script injection with -100 priority
+        add_action('wp_head', [$this, 'print_cookie_blocker'], -100);
 
         // Admin: Add settings page
         add_action('admin_menu', [$this, 'add_settings_page']);
@@ -76,34 +75,35 @@ class WP_Cookie_Blocker {
     }
 
     /**
-     * Enqueue frontend scripts
+     * Print the cookie blocker script directly in the head
      */
-    public function enqueue_scripts() {
-        // Only load if we have patterns to block
+    public function print_cookie_blocker() {
+        // Only if we have patterns to block
         $active_patterns = $this->get_active_patterns();
         if (empty($active_patterns)) {
             return;
         }
 
-        // Register and enqueue script
-        wp_register_script(
-            'wp-cookie-blocker',
-            plugin_dir_url(__FILE__) . 'js/cookie-blocker.js',
-            [],
-            self::VERSION,
-            false // Load in header
-        );
-
-        // Add settings as JavaScript object
-        wp_localize_script('wp-cookie-blocker', 'wpCookieBlocker', [
+        // Prepare JavaScript settings
+        $js_settings = json_encode([
             'patterns' => array_map(function($item) {
                 return $item['pattern'];
             }, $active_patterns),
             'enableLogging' => !empty($this->settings['enable_logging'])
         ]);
 
-        // Enqueue the script
-        wp_enqueue_script('wp-cookie-blocker');
+        // Output the inline script
+        echo "<!-- WP Cookie Blocker - Start -->\n";
+        echo "<script id=\"wp-cookie-blocker-inline\">\n";
+
+        // Add settings object
+        echo "window.wpCookieBlocker = " . $js_settings . ";\n";
+
+        // Include the script content
+        readfile(plugin_dir_path(__FILE__) . 'js/cookie-blocker.js');
+
+        echo "\n</script>\n";
+        echo "<!-- WP Cookie Blocker - End -->\n";
     }
 
     /**

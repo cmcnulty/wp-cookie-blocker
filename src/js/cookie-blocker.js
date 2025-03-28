@@ -1,18 +1,18 @@
 /**
  * WP Cookie Blocker Script
- * 
+ *
  * Blocks cookies based on regex patterns configured in the admin
  */
 (function() {
     // Get settings from WordPress
-    const patterns = typeof wpCookieBlocker !== 'undefined' && wpCookieBlocker.patterns 
-        ? wpCookieBlocker.patterns 
+    const patterns = typeof wpCookieBlocker !== 'undefined' && wpCookieBlocker.patterns
+        ? wpCookieBlocker.patterns
         : ['wp-dark-mode-']; // Default
-    
-    const enableLogging = typeof wpCookieBlocker !== 'undefined' 
-        ? !!wpCookieBlocker.enableLogging 
+
+    const enableLogging = typeof wpCookieBlocker !== 'undefined'
+        ? !!wpCookieBlocker.enableLogging
         : false;
-    
+
     // Compile regex patterns
     const regexPatterns = patterns.map(pattern => {
         try {
@@ -24,13 +24,13 @@
                     return new RegExp(match[1], match[2]);
                 }
             }
-            
+
             // If it has special regex characters but isn't formatted as /pattern/flags
             if (/[[\](){}?*+|^$\\.]/.test(pattern)) {
                 // Treat as regular expression without flags
                 return new RegExp(pattern);
             }
-            
+
             // Treat as simple prefix
             return new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
         } catch (e) {
@@ -41,15 +41,15 @@
             return new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
         }
     });
-    
+
     if (enableLogging) {
         console.log('Cookie Blocker active with patterns:', patterns);
     }
-    
+
     // Override the document.cookie setter
     const originalDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
     const originalSetter = originalDescriptor.set;
-    
+
     Object.defineProperty(Document.prototype, 'cookie', {
         configurable: true,
         get: originalDescriptor.get,
@@ -58,10 +58,10 @@
             const cookieParts = value.split('=');
             if (cookieParts.length >= 1) {
                 const cookieName = cookieParts[0].trim();
-                
+
                 // Check if the cookie matches any of our patterns
                 const shouldBlock = regexPatterns.some(regex => regex.test(cookieName));
-                
+
                 if (shouldBlock) {
                     if (enableLogging) {
                         console.log(`Blocked cookie: ${cookieName} (matched pattern)`);
@@ -69,44 +69,59 @@
                     return; // Don't set the cookie
                 }
             }
-            
+
             // Set the cookie using the original setter if not blocked
             return originalSetter.call(this, value);
         }
     });
-    
+
     // Function to clean existing cookies
     function cleanBlockedCookies() {
         const cookies = document.cookie.split(';');
         let removedCount = 0;
-        
+
         for (const cookie of cookies) {
             const [cookieName] = cookie.split('=').map(item => item.trim());
-            
+
             // Check if this cookie matches any of our patterns
             const shouldRemove = regexPatterns.some(regex => regex.test(cookieName));
-            
+
             if (shouldRemove) {
-                // Standard way to remove a cookie
-                document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-                removedCount++;
-                
-                // Try with domain too for stubborn cookies
-                if (document.location.hostname) {
-                    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${document.location.hostname};`;
-                    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${document.location.hostname};`;
+                // Try multiple domain variations to ensure removal
+                const domains = [
+                    '', // current domain
+                    location.hostname,
+                    '.' + location.hostname, // with leading dot
+                    location.hostname.replace(/^www\./, ''), // without www
+                    '.' + location.hostname.replace(/^www\./, '') // without www, with leading dot
+                ];
+
+                const paths = ['/', ''];
+
+                // Try all combinations of domain and path
+                for (const domain of domains) {
+                    for (const path of paths) {
+                        const domainPart = domain ? `domain=${domain};` : '';
+                        const pathPart = `path=${path};`;
+                        const removalString = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; ${pathPart} ${domainPart}`;
+
+                        // Use original setter directly to bypass our own blocker
+                        originalSetter.call(document, removalString);
+                    }
                 }
+
+                removedCount++;
             }
         }
-        
+
         if (removedCount > 0 && enableLogging) {
-            console.log(`Removed ${removedCount} blocked cookies`);
+            console.log(`Removed ${removedCount} blocked cookies using direct method`);
         }
     }
-    
+
     // Run cleanup when the script loads
     cleanBlockedCookies();
-    
+
     // Also run cleanup periodically to catch cookies set after our script loads
     setInterval(cleanBlockedCookies, 5000);
 })();
