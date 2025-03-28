@@ -7,43 +7,34 @@
     // Get settings from WordPress
     const patterns = typeof wpCookieBlocker !== 'undefined' && wpCookieBlocker.patterns
         ? wpCookieBlocker.patterns
-        : ['wp-dark-mode-']; // Default
+        : []; // No default - don't block anything if not configured
 
     const enableLogging = typeof wpCookieBlocker !== 'undefined'
         ? !!wpCookieBlocker.enableLogging
         : false;
 
-    // Compile regex patterns
+    // Compile regex patterns - treat all inputs as regex
     const regexPatterns = patterns.map(pattern => {
         try {
-            // Check if it's already a regex pattern (starts and ends with /)
-            if (pattern.match(/^\/.*\/[gimsuy]*$/)) {
-                // Extract pattern and flags
-                const match = pattern.match(/^\/(.*)\/([gimsuy]*)$/);
-                if (match) {
-                    return new RegExp(match[1], match[2]);
-                }
-            }
-
-            // If it has special regex characters but isn't formatted as /pattern/flags
-            if (/[[\](){}?*+|^$\\.]/.test(pattern)) {
-                // Treat as regular expression without flags
-                return new RegExp(pattern);
-            }
-
-            // Treat as simple prefix
-            return new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
+            return new RegExp(pattern);
         } catch (e) {
             if (enableLogging) {
                 console.error(`Invalid regex pattern: ${pattern}`, e);
             }
-            // Fallback to exact match
-            return new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+            return null; // Skip invalid patterns
         }
-    });
+    }).filter(pattern => pattern !== null); // Remove any null patterns
 
     if (enableLogging) {
         console.log('Cookie Blocker active with patterns:', patterns);
+    }
+
+    // Skip if no valid patterns
+    if (regexPatterns.length === 0) {
+        if (enableLogging) {
+            console.log('No valid patterns to block - Cookie Blocker inactive');
+        }
+        return;
     }
 
     // Override the document.cookie setter

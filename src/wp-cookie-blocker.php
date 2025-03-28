@@ -3,7 +3,7 @@
  * Plugin Name: WP Cookie Blocker
  * Plugin URI: https://github.com.com/cmcnulty/wp-cookie-blocker
  * Description: Block unwanted cookies from third-party plugins using custom regex patterns
- * Version: 1.0.2
+ * Version: 1.0.4
  * Author: Charles McNulty
  * Author URI: https://yourwebsite.com
  * Text Domain: wp-cookie-blocker
@@ -21,7 +21,7 @@ class WP_Cookie_Blocker {
     /**
      * Plugin version
      */
-    const VERSION = '1.0.2';
+    const VERSION = '1.0.4';
 
     /**
      * Option name for storing settings
@@ -33,7 +33,7 @@ class WP_Cookie_Blocker {
      */
     private $default_settings = [
         'patterns' => [
-            ['pattern' => 'wp-dark-mode-', 'enabled' => true, 'description' => 'WP Dark Mode cookies']
+            // Empty by default - no cookies blocked until configured
         ],
         'enable_logging' => true
     ];
@@ -165,13 +165,6 @@ class WP_Cookie_Blocker {
             }
         }
 
-        // If no patterns were added, keep at least one empty pattern
-        if (empty($output['patterns'])) {
-            $output['patterns'] = [
-                ['pattern' => '', 'enabled' => true, 'description' => '']
-            ];
-        }
-
         // Validate logging option
         $output['enable_logging'] = !empty($input['enable_logging']);
 
@@ -190,13 +183,20 @@ class WP_Cookie_Blocker {
                 <?php settings_fields('wp_cookie_blocker'); ?>
 
                 <h2><?php _e('Cookie Patterns to Block', 'wp-cookie-blocker'); ?></h2>
-                <p><?php _e('Add patterns to match cookie names. Use prefixes (e.g. "wordpress-") or regular expressions (e.g. "^wordpress-.*").', 'wp-cookie-blocker'); ?></p>
+                <p><?php _e('Add regex patterns to match cookie names. Examples:', 'wp-cookie-blocker'); ?></p>
+
+                <ul style="margin-left: 20px; list-style-type: disc;">
+                    <li><code>^wp-dark-mode-</code> - Match cookies that start with "wp-dark-mode-"</li>
+                    <li><code>^wordpress_</code> - Match cookies that start with "wordpress_"</li>
+                    <li><code>session$</code> - Match cookies that end with "session"</li>
+                    <li><code>/^_ga_/i</code> - Match cookies that start with "_ga_" (case insensitive)</li>
+                </ul>
 
                 <table class="form-table" id="wp-cookie-blocker-patterns">
                     <thead>
                         <tr>
                             <th style="width: 50px;"><?php _e('Enabled', 'wp-cookie-blocker'); ?></th>
-                            <th><?php _e('Pattern', 'wp-cookie-blocker'); ?></th>
+                            <th><?php _e('Pattern (regex)', 'wp-cookie-blocker'); ?></th>
                             <th><?php _e('Description', 'wp-cookie-blocker'); ?></th>
                             <th style="width: 60px;"><?php _e('Action', 'wp-cookie-blocker'); ?></th>
                         </tr>
@@ -204,6 +204,9 @@ class WP_Cookie_Blocker {
                     <tbody>
                     <?php
                     $patterns = !empty($this->settings['patterns']) ? $this->settings['patterns'] : [['pattern' => '', 'enabled' => true, 'description' => '']];
+                    if (empty($patterns)) {
+                        $patterns = [['pattern' => '', 'enabled' => true, 'description' => '']];
+                    }
                     foreach ($patterns as $index => $pattern) :
                     ?>
                         <tr class="pattern-row">
@@ -211,10 +214,10 @@ class WP_Cookie_Blocker {
                                 <input type="checkbox" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo $index; ?>][enabled]" value="1" <?php checked(!empty($pattern['enabled'])); ?> />
                             </td>
                             <td>
-                                <input type="text" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo $index; ?>][pattern]" value="<?php echo esc_attr($pattern['pattern']); ?>" class="regular-text" placeholder="e.g., wordpress-" />
+                                <input type="text" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo $index; ?>][pattern]" value="<?php echo esc_attr($pattern['pattern']); ?>" class="regular-text" placeholder="e.g., ^wp-dark-mode-" />
                             </td>
                             <td>
-                                <input type="text" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo $index; ?>][description]" value="<?php echo esc_attr($pattern['description'] ?? ''); ?>" class="regular-text" placeholder="e.g., WordPress cookies" />
+                                <input type="text" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo $index; ?>][description]" value="<?php echo esc_attr($pattern['description'] ?? ''); ?>" class="regular-text" placeholder="e.g., WP Dark Mode cookies" />
                             </td>
                             <td>
                                 <button type="button" class="button remove-pattern" <?php echo (count($patterns) <= 1) ? 'style="display:none;"' : ''; ?>>&times;</button>
