@@ -1,12 +1,12 @@
 <?php
 /**
- * Plugin Name: WP Cookie Blocker
+ * Plugin Name: Cookie Blocker
  * Plugin URI: https://github.com.com/cmcnulty/wp-cookie-blocker
  * Description: Block unwanted cookies from third-party plugins using custom regex patterns
  * Version: 1.0.4
  * Author: Charles McNulty
  * Author URI: https://yourwebsite.com
- * Text Domain: wp-cookie-blocker
+ * Text Domain: cookie-blocker
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
@@ -78,6 +78,8 @@ class WP_Cookie_Blocker {
      * Print the cookie blocker script directly in the head
      */
     public function print_cookie_blocker() {
+        global $wp_filesystem;
+
         // Only if we have patterns to block
         $active_patterns = $this->get_active_patterns();
         if (empty($active_patterns)) {
@@ -97,10 +99,28 @@ class WP_Cookie_Blocker {
         echo "<script id=\"wp-cookie-blocker-inline\">\n";
 
         // Add settings object
-        echo "window.wpCookieBlocker = " . $js_settings . ";\n";
+        echo "window.wpCookieBlocker = " . esc_js($js_settings) . ";\n";
 
         // Include the script content
-        readfile(plugin_dir_path(__FILE__) . 'js/cookie-blocker.js');
+        if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+
+        if ( false === ( $creds = request_filesystem_credentials( '', '', false, false, null ) ) ) {
+            // If request fails, exit or return gracefully
+            return;
+        }
+
+        if ( ! WP_Filesystem( $creds ) ) {
+            // If WP_Filesystem couldn't be initialized
+            return;
+        }
+
+        $path = plugin_dir_path(__FILE__) . 'js/cookie-blocker.js';
+
+        if ( $wp_filesystem->exists( $path ) ) {
+            echo $wp_filesystem->get_contents( $path );
+        }
 
         echo "\n</script>\n";
         echo "<!-- WP Cookie Blocker - End -->\n";
@@ -177,13 +197,13 @@ class WP_Cookie_Blocker {
     public function render_settings_page() {
         ?>
         <div class="wrap">
-            <h1><?php _e('Cookie Blocker Settings', 'wp-cookie-blocker'); ?></h1>
+            <h1><?php esc_html_e('Cookie Blocker Settings', 'wp-cookie-blocker'); ?></h1>
 
             <form method="post" action="options.php">
                 <?php settings_fields('wp_cookie_blocker'); ?>
 
                 <h2><?php _e('Cookie Patterns to Block', 'wp-cookie-blocker'); ?></h2>
-                <p><?php _e('Add regex patterns to match cookie names. Examples:', 'wp-cookie-blocker'); ?></p>
+                <p><?php esc_html_e('Add regex patterns to match cookie names. Examples:', 'wp-cookie-blocker'); ?></p>
 
                 <ul style="margin-left: 20px; list-style-type: disc;">
                     <li><code>^wp-dark-mode-</code> - Match cookies that start with "wp-dark-mode-"</li>
@@ -195,10 +215,10 @@ class WP_Cookie_Blocker {
                 <table class="form-table" id="wp-cookie-blocker-patterns">
                     <thead>
                         <tr>
-                            <th style="width: 50px;"><?php _e('Enabled', 'wp-cookie-blocker'); ?></th>
-                            <th><?php _e('Pattern (regex)', 'wp-cookie-blocker'); ?></th>
-                            <th><?php _e('Description', 'wp-cookie-blocker'); ?></th>
-                            <th style="width: 60px;"><?php _e('Action', 'wp-cookie-blocker'); ?></th>
+                            <th style="width: 50px;"><?php esc_html_e('Enabled', 'wp-cookie-blocker'); ?></th>
+                            <th><?php esc_html_e('Pattern (regex)', 'wp-cookie-blocker'); ?></th>
+                            <th><?php esc_html_e('Description', 'wp-cookie-blocker'); ?></th>
+                            <th style="width: 60px;"><?php esc_html_e('Action', 'wp-cookie-blocker'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -211,13 +231,13 @@ class WP_Cookie_Blocker {
                     ?>
                         <tr class="pattern-row">
                             <td>
-                                <input type="checkbox" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo $index; ?>][enabled]" value="1" <?php checked(!empty($pattern['enabled'])); ?> />
+                                <input type="checkbox" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo esc_attr($index); ?>][enabled]" value="1" <?php checked(!empty($pattern['enabled'])); ?> />
                             </td>
                             <td>
-                                <input type="text" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo $index; ?>][pattern]" value="<?php echo esc_attr($pattern['pattern']); ?>" class="regular-text" placeholder="e.g., ^wp-dark-mode-" />
+                                <input type="text" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo esc_attr($index); ?>][pattern]" value="<?php echo esc_attr($pattern['pattern']); ?>" class="regular-text" placeholder="e.g., ^wp-dark-mode-" />
                             </td>
                             <td>
-                                <input type="text" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo $index; ?>][description]" value="<?php echo esc_attr($pattern['description'] ?? ''); ?>" class="regular-text" placeholder="e.g., WP Dark Mode cookies" />
+                                <input type="text" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo esc_attr($index); ?>][description]" value="<?php echo esc_attr($pattern['description'] ?? ''); ?>" class="regular-text" placeholder="e.g., WP Dark Mode cookies" />
                             </td>
                             <td>
                                 <button type="button" class="button remove-pattern" <?php echo (count($patterns) <= 1) ? 'style="display:none;"' : ''; ?>>&times;</button>
@@ -228,17 +248,17 @@ class WP_Cookie_Blocker {
                 </table>
 
                 <p>
-                    <button type="button" class="button add-pattern"><?php _e('Add Pattern', 'wp-cookie-blocker'); ?></button>
+                    <button type="button" class="button add-pattern"><?php esc_html_e('Add Pattern', 'wp-cookie-blocker'); ?></button>
                 </p>
 
-                <h2><?php _e('Advanced Settings', 'wp-cookie-blocker'); ?></h2>
+                <h2><?php esc_html_e('Advanced Settings', 'wp-cookie-blocker'); ?></h2>
                 <table class="form-table">
                     <tr>
-                        <th scope="row"><?php _e('Console Logging', 'wp-cookie-blocker'); ?></th>
+                        <th scope="row"><?php esc_html_e('Console Logging', 'wp-cookie-blocker'); ?></th>
                         <td>
                             <label>
                                 <input type="checkbox" name="<?php echo esc_attr(self::OPTION_NAME); ?>[enable_logging]" value="1" <?php checked(!empty($this->settings['enable_logging'])); ?> />
-                                <?php _e('Enable console logging for debugging', 'wp-cookie-blocker'); ?>
+                                <?php esc_html_e('Enable console logging for debugging', 'wp-cookie-blocker'); ?>
                             </label>
                         </td>
                     </tr>
