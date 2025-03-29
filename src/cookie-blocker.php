@@ -318,11 +318,6 @@ class WP_Cookie_Blocker {
             $('#cookie-blocker-patterns').on('click', '.remove-pattern', function() {
                 $(this).closest('tr').remove();
 
-                // Hide remove button on last row
-                if ($('.pattern-row').length <= 1) {
-                    $('.remove-pattern').hide();
-                }
-
                 // Reindex remaining rows
                 $('.pattern-row').each(function(index) {
                     $(this).find('input').each(function() {
