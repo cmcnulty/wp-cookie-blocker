@@ -3,7 +3,7 @@
  * Plugin Name: Cookie Blocker
  * Plugin URI: https://github.com.com/cmcnulty/wp-cookie-blocker
  * Description: Block unwanted cookies from third-party plugins using custom regex patterns
- * Version: 1.0.8
+ * Version: 1.0.10
  * Author: Charles McNulty
  * Author URI: https://github.com.com/cmcnulty
  * Text Domain: cookie-blocker
@@ -21,7 +21,7 @@ class WP_Cookie_Blocker {
     /**
      * Plugin version
      */
-    const VERSION = '1.0.8';
+    const VERSION = '1.0.9';
 
     /**
      * Option name for storing settings
@@ -107,7 +107,8 @@ class WP_Cookie_Blocker {
             'cookie-blocker-placeholder',
             null, // No actual file
             [],
-            self::VERSION
+            self::VERSION,
+            false // Not in footer
         );
 
         // Add our settings as data to be used by the script
@@ -186,9 +187,14 @@ class WP_Cookie_Blocker {
      */
     public function register_settings() {
         register_setting(
-            'wp_cookie_blocker',
-            self::OPTION_NAME,
-            [$this, 'validate_settings']
+            'wp_cookie_blocker',        // Option group
+            self::OPTION_NAME,          // Option name
+            array(                      // Args array instead of callback
+                'type'              => 'array',
+                'description'       => 'Cookie blocker settings',
+                'sanitize_callback' => array($this, 'validate_settings'),
+                'default'           => $this->default_settings
+            )
         );
     }
 
@@ -231,7 +237,7 @@ class WP_Cookie_Blocker {
             <form method="post" action="options.php">
                 <?php settings_fields('wp_cookie_blocker'); ?>
 
-                <h2><?php _e('Cookie Patterns to Block', 'cookie-blocker'); ?></h2>
+                <h2><?php esc_html_e('Cookie Patterns to Block', 'cookie-blocker'); ?></h2>
                 <p><?php esc_html_e('Add regex patterns to match cookie names. Examples:', 'cookie-blocker'); ?></p>
 
                 <ul style="margin-left: 20px; list-style-type: disc;">
