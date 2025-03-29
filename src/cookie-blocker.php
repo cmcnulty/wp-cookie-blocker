@@ -3,7 +3,7 @@
  * Plugin Name: Cookie Blocker
  * Plugin URI: https://github.com.com/cmcnulty/wp-cookie-blocker
  * Description: Block unwanted cookies from third-party plugins using custom regex patterns
- * Version: 1.0.11
+ * Version: 1.0.14
  * Author: Charles McNulty
  * Author URI: https://github.com.com/cmcnulty
  * Text Domain: cookie-blocker
@@ -21,7 +21,7 @@ class WP_Cookie_Blocker {
     /**
      * Plugin version
      */
-    const VERSION = '1.0.11';
+    const VERSION = '1.0.14';
 
     /**
      * Option name for storing settings
@@ -32,9 +32,7 @@ class WP_Cookie_Blocker {
      * Default settings
      */
     private $default_settings = [
-        'patterns' => [
-            // Empty by default - no cookies blocked until configured
-        ],
+        'patterns' => [],
         'enable_logging' => true
     ];
 
@@ -84,24 +82,6 @@ class WP_Cookie_Blocker {
             return;
         }
 
-        // Prepare JavaScript settings
-        $js_settings = wp_json_encode([
-            'patterns' => array_map(function($item) {
-                return $item['pattern'];
-            }, $active_patterns),
-            'enableLogging' => !empty($this->settings['enable_logging'])
-        ]);
-
-        $print_settings = "window.wpCookieBlocker = " . $js_settings . ";";
-
-        // Get the script content using WordPress filesystem API
-        $script_content = $this->get_script_content();
-        if (empty($script_content)) {
-            return;
-        }
-
-        $script_content = $js_settings . $script_content;
-
         // Register an empty script just so we can attach our inline script to it
         wp_register_script(
             'cookie-blocker-placeholder',
@@ -119,8 +99,12 @@ class WP_Cookie_Blocker {
             'enableLogging' => !empty($this->settings['enable_logging'])
         ]);
 
-        // Add the script content as an inline script
-        wp_add_inline_script('cookie-blocker-placeholder', $script_content, 'after');
+        // Get the script content using WordPress filesystem API
+        $script_content = $this->get_script_content();
+        if (!empty($script_content)) {
+            // Add the script content as an inline script
+            wp_add_inline_script('cookie-blocker-placeholder', $script_content, 'after');
+        }
 
         // Enqueue the script (which will output both the data and the inline script)
         wp_enqueue_script('cookie-blocker-placeholder');
@@ -275,7 +259,7 @@ class WP_Cookie_Blocker {
                                 <input type="text" name="<?php echo esc_attr(self::OPTION_NAME); ?>[patterns][<?php echo esc_attr($index); ?>][description]" value="<?php echo esc_attr($pattern['description'] ?? ''); ?>" class="regular-text" placeholder="e.g., WP Dark Mode cookies" />
                             </td>
                             <td>
-                                <button type="button" class="button remove-pattern" <?php echo (count($patterns) <= 1) ? 'style="display:none;"' : ''; ?>>&times;</button>
+                                <button type="button" class="button remove-pattern">&times;</button>
                             </td>
                         </tr>
                     <?php endforeach; ?>
