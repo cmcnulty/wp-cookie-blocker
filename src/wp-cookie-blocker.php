@@ -3,7 +3,7 @@
  * Plugin Name: Cookie Blocker
  * Plugin URI: https://github.com.com/cmcnulty/wp-cookie-blocker
  * Description: Block unwanted cookies from third-party plugins using custom regex patterns
- * Version: 1.0.6
+ * Version: 1.0.7
  * Author: Charles McNulty
  * Author URI: https://yourwebsite.com
  * Text Domain: cookie-blocker
@@ -87,19 +87,19 @@ class WP_Cookie_Blocker {
         }
 
         // Prepare JavaScript settings
-        $js_settings = json_encode([
+        $js_settings = [
             'patterns' => array_map(function($item) {
                 return $item['pattern'];
             }, $active_patterns),
             'enableLogging' => !empty($this->settings['enable_logging'])
-        ]);
+        ];
 
         // Output the inline script
         echo "<!-- WP Cookie Blocker - Start -->\n";
         echo "<script id=\"wp-cookie-blocker-inline\">\n";
 
         // Add settings object
-        echo "window.wpCookieBlocker = " . filter_var( $js_settings, FILTER_SANITIZE_FULL_SPECIAL_CHARS ) . ";\n";
+        echo "window.wpCookieBlocker = " . json_encode( $js_settings ) . ";\n";
 
         // Include the script content
         if ( ! function_exists( 'request_filesystem_credentials' ) ) {
