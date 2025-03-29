@@ -1,4 +1,4 @@
-=== WP Cookie Blocker ===
+=== Cookie Blocker ===
 Contributors: Charles McNulty
 Tags: cookies, privacy, gdpr, cookie-control
 Requires at least: 5.0
@@ -12,7 +12,7 @@ Block unwanted cookies set by other plugins using custom patterns and regular ex
 
 == Description ==
 
-WP Cookie Blocker allows you to block unwanted cookies set by third-party plugins without modifying their code. This is especially useful for GDPR compliance and privacy concerns.
+Cookie Blocker allows you to block unwanted cookies set by third-party plugins without modifying their code. This is especially useful for GDPR compliance and privacy concerns.
 
 = Key Features =
 
@@ -30,7 +30,7 @@ The plugin intercepts cookie-setting actions in the browser by overriding the do
 
 == Installation ==
 
-1. Upload the `wp-cookie-blocker` folder to the `/wp-content/plugins/` directory
+1. Upload the `cookie-blocker` folder to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Go to Settings > Cookie Blocker to configure your patterns
 

@@ -5,7 +5,7 @@
  * Description: Block unwanted cookies from third-party plugins using custom regex patterns
  * Version: 1.0.8
  * Author: Charles McNulty
- * Author URI: https://yourwebsite.com
+ * Author URI: https://github.com.com/cmcnulty
  * Text Domain: cookie-blocker
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -104,14 +104,14 @@ class WP_Cookie_Blocker {
 
         // Register an empty script just so we can attach our inline script to it
         wp_register_script(
-            'wp-cookie-blocker-placeholder',
+            'cookie-blocker-placeholder',
             null, // No actual file
             [],
             self::VERSION
         );
 
         // Add our settings as data to be used by the script
-        wp_localize_script('wp-cookie-blocker-placeholder', 'wpCookieBlocker', [
+        wp_localize_script('cookie-blocker-placeholder', 'wpCookieBlocker', [
             'patterns' => array_map(function($item) {
                 return $item['pattern'];
             }, $active_patterns),
@@ -119,15 +119,15 @@ class WP_Cookie_Blocker {
         ]);
 
         // Add the script content as an inline script
-        wp_add_inline_script('wp-cookie-blocker-placeholder', $script_content, 'after');
+        wp_add_inline_script('cookie-blocker-placeholder', $script_content, 'after');
 
         // Enqueue the script (which will output both the data and the inline script)
-        wp_enqueue_script('wp-cookie-blocker-placeholder');
+        wp_enqueue_script('cookie-blocker-placeholder');
 
         // Set script to load with highest priority
         global $wp_scripts;
-        if (isset($wp_scripts->registered['wp-cookie-blocker-placeholder'])) {
-            $wp_scripts->registered['wp-cookie-blocker-placeholder']->extra['group'] = 0;
+        if (isset($wp_scripts->registered['cookie-blocker-placeholder'])) {
+            $wp_scripts->registered['cookie-blocker-placeholder']->extra['group'] = 0;
         }
     }
 
@@ -173,10 +173,10 @@ class WP_Cookie_Blocker {
      */
     public function add_settings_page() {
         add_options_page(
-            __('Cookie Blocker Settings', 'wp-cookie-blocker'),
-            __('Cookie Blocker', 'wp-cookie-blocker'),
+            __('Cookie Blocker Settings', 'cookie-blocker'),
+            __('Cookie Blocker', 'cookie-blocker'),
             'manage_options',
-            'wp-cookie-blocker',
+            'cookie-blocker',
             [$this, 'render_settings_page']
         );
     }
@@ -226,13 +226,13 @@ class WP_Cookie_Blocker {
     public function render_settings_page() {
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e('Cookie Blocker Settings', 'wp-cookie-blocker'); ?></h1>
+            <h1><?php esc_html_e('Cookie Blocker Settings', 'cookie-blocker'); ?></h1>
 
             <form method="post" action="options.php">
                 <?php settings_fields('wp_cookie_blocker'); ?>
 
-                <h2><?php _e('Cookie Patterns to Block', 'wp-cookie-blocker'); ?></h2>
-                <p><?php esc_html_e('Add regex patterns to match cookie names. Examples:', 'wp-cookie-blocker'); ?></p>
+                <h2><?php _e('Cookie Patterns to Block', 'cookie-blocker'); ?></h2>
+                <p><?php esc_html_e('Add regex patterns to match cookie names. Examples:', 'cookie-blocker'); ?></p>
 
                 <ul style="margin-left: 20px; list-style-type: disc;">
                     <li><code>^wp-dark-mode-</code> - Match cookies that start with "wp-dark-mode-"</li>
@@ -241,13 +241,13 @@ class WP_Cookie_Blocker {
                     <li><code>/^_ga_/i</code> - Match cookies that start with "_ga_" (case insensitive)</li>
                 </ul>
 
-                <table class="form-table" id="wp-cookie-blocker-patterns">
+                <table class="form-table" id="cookie-blocker-patterns">
                     <thead>
                         <tr>
-                            <th style="width: 50px;"><?php esc_html_e('Enabled', 'wp-cookie-blocker'); ?></th>
-                            <th><?php esc_html_e('Pattern (regex)', 'wp-cookie-blocker'); ?></th>
-                            <th><?php esc_html_e('Description', 'wp-cookie-blocker'); ?></th>
-                            <th style="width: 60px;"><?php esc_html_e('Action', 'wp-cookie-blocker'); ?></th>
+                            <th style="width: 50px;"><?php esc_html_e('Enabled', 'cookie-blocker'); ?></th>
+                            <th><?php esc_html_e('Pattern (regex)', 'cookie-blocker'); ?></th>
+                            <th><?php esc_html_e('Description', 'cookie-blocker'); ?></th>
+                            <th style="width: 60px;"><?php esc_html_e('Action', 'cookie-blocker'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -277,17 +277,17 @@ class WP_Cookie_Blocker {
                 </table>
 
                 <p>
-                    <button type="button" class="button add-pattern"><?php esc_html_e('Add Pattern', 'wp-cookie-blocker'); ?></button>
+                    <button type="button" class="button add-pattern"><?php esc_html_e('Add Pattern', 'cookie-blocker'); ?></button>
                 </p>
 
-                <h2><?php esc_html_e('Advanced Settings', 'wp-cookie-blocker'); ?></h2>
+                <h2><?php esc_html_e('Advanced Settings', 'cookie-blocker'); ?></h2>
                 <table class="form-table">
                     <tr>
-                        <th scope="row"><?php esc_html_e('Console Logging', 'wp-cookie-blocker'); ?></th>
+                        <th scope="row"><?php esc_html_e('Console Logging', 'cookie-blocker'); ?></th>
                         <td>
                             <label>
                                 <input type="checkbox" name="<?php echo esc_attr(self::OPTION_NAME); ?>[enable_logging]" value="1" <?php checked(!empty($this->settings['enable_logging'])); ?> />
-                                <?php esc_html_e('Enable console logging for debugging', 'wp-cookie-blocker'); ?>
+                                <?php esc_html_e('Enable console logging for debugging', 'cookie-blocker'); ?>
                             </label>
                         </td>
                     </tr>
@@ -316,7 +316,7 @@ class WP_Cookie_Blocker {
                 newRow.find('.remove-pattern').show();
 
                 // Add to table
-                $('#wp-cookie-blocker-patterns tbody').append(newRow);
+                $('#cookie-blocker-patterns tbody').append(newRow);
 
                 // Show all remove buttons if we have more than one row
                 if ($('.pattern-row').length > 1) {
@@ -325,7 +325,7 @@ class WP_Cookie_Blocker {
             });
 
             // Remove pattern
-            $('#wp-cookie-blocker-patterns').on('click', '.remove-pattern', function() {
+            $('#cookie-blocker-patterns').on('click', '.remove-pattern', function() {
                 $(this).closest('tr').remove();
 
                 // Hide remove button on last row
@@ -350,7 +350,7 @@ class WP_Cookie_Blocker {
      * Add settings link to plugin page
      */
     public function add_settings_link($links) {
-        $settings_link = '<a href="options-general.php?page=wp-cookie-blocker">' . __('Settings', 'wp-cookie-blocker') . '</a>';
+        $settings_link = '<a href="options-general.php?page=cookie-blocker">' . __('Settings', 'cookie-blocker') . '</a>';
         array_unshift($links, $settings_link);
         return $links;
     }

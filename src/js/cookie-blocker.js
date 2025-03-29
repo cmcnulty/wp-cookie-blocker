@@ -1,5 +1,5 @@
 /**
- * WP Cookie Blocker Script
+ * Cookie Blocker Script
  *
  * Blocks cookies based on regex patterns configured in the admin
  */

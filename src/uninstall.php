@@ -1,6 +1,6 @@
 <?php
 /**
- * Uninstall WP Cookie Blocker
+ * Uninstall Cookie Blocker
  *
  * Fired when the plugin is uninstalled.
  */
