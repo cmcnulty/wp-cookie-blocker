@@ -3,7 +3,7 @@
  * Plugin Name: Cookie Blocker
  * Plugin URI: https://github.com.com/cmcnulty/wp-cookie-blocker
  * Description: Block unwanted cookies from third-party plugins using custom regex patterns
- * Version: 1.0.7
+ * Version: 1.0.8
  * Author: Charles McNulty
  * Author URI: https://yourwebsite.com
  * Text Domain: cookie-blocker
@@ -21,7 +21,7 @@ class WP_Cookie_Blocker {
     /**
      * Plugin version
      */
-    const VERSION = '1.0.4';
+    const VERSION = '1.0.8';
 
     /**
      * Option name for storing settings
@@ -78,8 +78,6 @@ class WP_Cookie_Blocker {
      * Print the cookie blocker script directly in the head
      */
     public function print_cookie_blocker() {
-        global $wp_filesystem;
-
         // Only if we have patterns to block
         $active_patterns = $this->get_active_patterns();
         if (empty($active_patterns)) {
@@ -87,43 +85,74 @@ class WP_Cookie_Blocker {
         }
 
         // Prepare JavaScript settings
-        $js_settings = [
+        $js_settings = wp_json_encode([
             'patterns' => array_map(function($item) {
                 return $item['pattern'];
             }, $active_patterns),
             'enableLogging' => !empty($this->settings['enable_logging'])
-        ];
+        ]);
 
-        // Output the inline script
-        echo "<!-- WP Cookie Blocker - Start -->\n";
-        echo "<script id=\"wp-cookie-blocker-inline\">\n";
+        $print_settings = "window.wpCookieBlocker = " . $js_settings . ";";
 
-        // Add settings object
-        echo "window.wpCookieBlocker = " . json_encode( $js_settings ) . ";\n";
+        // Get the script content using WordPress filesystem API
+        $script_content = $this->get_script_content();
+        if (empty($script_content)) {
+            return;
+        }
 
-        // Include the script content
-        if ( ! function_exists( 'request_filesystem_credentials' ) ) {
+        $script_content = $js_settings . $script_content;
+
+        // Register an empty script just so we can attach our inline script to it
+        wp_register_script(
+            'wp-cookie-blocker-placeholder',
+            null, // No actual file
+            [],
+            self::VERSION
+        );
+
+        // Add our settings as data to be used by the script
+        wp_localize_script('wp-cookie-blocker-placeholder', 'wpCookieBlocker', [
+            'patterns' => array_map(function($item) {
+                return $item['pattern'];
+            }, $active_patterns),
+            'enableLogging' => !empty($this->settings['enable_logging'])
+        ]);
+
+        // Add the script content as an inline script
+        wp_add_inline_script('wp-cookie-blocker-placeholder', $script_content, 'after');
+
+        // Enqueue the script (which will output both the data and the inline script)
+        wp_enqueue_script('wp-cookie-blocker-placeholder');
+
+        // Set script to load with highest priority
+        global $wp_scripts;
+        if (isset($wp_scripts->registered['wp-cookie-blocker-placeholder'])) {
+            $wp_scripts->registered['wp-cookie-blocker-placeholder']->extra['group'] = 0;
+        }
+    }
+
+    /**
+     * Get the script content using WordPress filesystem API
+     */
+    private function get_script_content() {
+        // Set up WP Filesystem
+        if (!function_exists('WP_Filesystem')) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
         }
 
-        if ( false === ( $creds = request_filesystem_credentials( '', '', false, false, null ) ) ) {
-            // If request fails, exit or return gracefully
-            return;
+        // Initialize the WP filesystem
+        global $wp_filesystem;
+        if (!WP_Filesystem()) {
+            return '';
         }
 
-        if ( ! WP_Filesystem( $creds ) ) {
-            // If WP_Filesystem couldn't be initialized
-            return;
-        }
-
+        // Get the script content
         $path = plugin_dir_path(__FILE__) . 'js/cookie-blocker.js';
-
-        if ( $wp_filesystem->exists( $path ) ) {
-            echo $wp_filesystem->get_contents( $path );
+        if ($wp_filesystem->exists($path)) {
+            return $wp_filesystem->get_contents($path);
         }
 
-        echo "\n</script>\n";
-        echo "<!-- WP Cookie Blocker - End -->\n";
+        return '';
     }
 
     /**
